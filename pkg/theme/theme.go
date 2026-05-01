@@ -63,9 +63,9 @@ func mustColor(s, def string) gocui.Attribute {
 	if s == "" {
 		s = def
 	}
-	c, err := gocui.GetColor(s)
-	if err != nil {
-		c, _ = gocui.GetColor(def)
+	c := gocui.GetColor(s)
+	if c == 0 {
+		c = gocui.GetColor(def)
 	}
 	return c
 }
