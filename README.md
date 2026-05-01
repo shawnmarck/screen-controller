@@ -12,10 +12,13 @@ Designed for **Omarchy** (theme colors from `~/.config/omarchy/current/theme/kit
 
 ## Build
 
+From the repository root:
+
 ```bash
-cd ~/projects/screen-controller
 go build -buildvcs=false -o screen-controller .
 ```
+
+The binary is `./screen-controller` (gitignored).
 
 ## Config path (`-config`)
 
@@ -101,4 +104,4 @@ Reload: `hyprctl reload`.
 
 ## License
 
-Personal project; use however you like.
+[MIT](LICENSE)
