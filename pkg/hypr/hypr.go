@@ -113,7 +113,7 @@ func MigrateOffMonitors(removing []string, safeWorkspace int) error {
 		if _, bad := remove[name]; !bad {
 			continue
 		}
-		if c.Class == "screen-layout-tui" || c.InitialClass == "screen-layout-tui" {
+		if shouldSkipMigrate(c) {
 			continue
 		}
 		addr := c.Address
@@ -129,6 +129,19 @@ func MigrateOffMonitors(removing []string, safeWorkspace int) error {
 		}
 	}
 	return nil
+}
+
+
+
+func shouldSkipMigrate(c client) bool {
+	switch {
+	case c.Class == "screen-layout-tui", c.InitialClass == "screen-layout-tui":
+		return true
+	case c.Class == "org.omarchy.screen-controller", c.InitialClass == "org.omarchy.screen-controller":
+		return true
+	default:
+		return false
+	}
 }
 
 func dispatch(cmd string, args ...string) error {

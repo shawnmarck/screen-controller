@@ -73,7 +73,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	g, err := gocui.NewGui(gocui.OutputTrue, true)
+	g, err := newGocui()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "gocui: %v\n", err)
 		os.Exit(1)
@@ -109,6 +109,19 @@ func main() {
 		fmt.Fprintf(os.Stderr, "MainLoop: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func newGocui() (*gocui.Gui, error) {
+	modes := []gocui.OutputMode{gocui.OutputTrue, gocui.OutputNormal}
+	var lastErr error
+	for _, mode := range modes {
+		g, err := gocui.NewGui(mode, true)
+		if err == nil {
+			return g, nil
+		}
+		lastErr = err
+	}
+	return nil, lastErr
 }
 
 func quit(g *gocui.Gui, _ *gocui.View) error {
