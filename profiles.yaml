@@ -1,0 +1,29 @@
+primary_monitor: DP-1
+safe_workspace: 1
+profile_order:
+  - dual_sdr
+  - single_left_sdr
+  - single_left_hdr
+  - dual_right_hdr
+
+profiles:
+  dual_sdr:
+    label: Dual — SDR (both)
+    monitors:
+      - DP-1,3840x2160@144,0x0,1.5,bitdepth,10,cm,auto
+      - HDMI-A-1,3840x2160@144,2560x0,1.5,bitdepth,10,cm,auto
+  single_left_sdr:
+    label: Single — left SDR (right off)
+    monitors:
+      - DP-1,3840x2160@144,0x0,1.5,bitdepth,10,cm,auto
+      - HDMI-A-1,disable
+  single_left_hdr:
+    label: Single — left HDR (right off)
+    monitors:
+      - DP-1,3840x2160@144,0x0,1.5,bitdepth,10,cm,hdr
+      - HDMI-A-1,disable
+  dual_right_hdr:
+    label: Dual — left SDR / right HDR
+    monitors:
+      - DP-1,3840x2160@144,0x0,1.5,bitdepth,10,cm,auto
+      - HDMI-A-1,3840x2160@144,2560x0,1.5,bitdepth,10,cm,hdr
