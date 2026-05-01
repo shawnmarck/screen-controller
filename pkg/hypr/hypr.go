@@ -14,13 +14,14 @@ type monitor struct {
 }
 
 type client struct {
-	Address    string `json:"address"`
-	Monitor    int    `json:"monitor"`
-	Mapped     bool   `json:"mapped"`
-	Hidden     bool   `json:"hidden"`
-	Fullscreen int    `json:"fullscreen"`
-	Class      string `json:"class"`
-	Title      string `json:"title"`
+	Address      string `json:"address"`
+	Monitor      int    `json:"monitor"`
+	Mapped       bool   `json:"mapped"`
+	Hidden       bool   `json:"hidden"`
+	Fullscreen   int    `json:"fullscreen"`
+	Class        string `json:"class"`
+	InitialClass string `json:"initialClass"`
+	Title        string `json:"title"`
 }
 
 func monitors() ([]monitor, error) {
@@ -110,6 +111,9 @@ func MigrateOffMonitors(removing []string, safeWorkspace int) error {
 			continue
 		}
 		if _, bad := remove[name]; !bad {
+			continue
+		}
+		if c.Class == "screen-layout-tui" || c.InitialClass == "screen-layout-tui" {
 			continue
 		}
 		addr := c.Address

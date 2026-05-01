@@ -29,7 +29,32 @@ func main() {
 	defaultCfg := filepath.Join(home, "projects", "screen-controller", "profiles.yaml")
 	configPath := flag.String("config", defaultCfg, "path to profiles.yaml")
 	kittyPath := flag.String("theme-kitty", theme.DefaultKittyConf(), "kitty.conf for palette (Omarchy theme)")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage:\n  %s [flags]                  # TUI\n  %s [flags] apply <profile_id> # one-shot layout\n  %s [flags] list               # profile ids\n", os.Args[0], os.Args[0], os.Args[0])
+		flag.PrintDefaults()
+	}
 	flag.Parse()
+	args := flag.Args()
+	if len(args) >= 1 {
+		switch args[0] {
+		case "apply":
+			if len(args) < 2 {
+				flag.Usage()
+				os.Exit(2)
+			}
+			if err := runApply(*configPath, args[1]); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			return
+		case "list":
+			if err := runList(*configPath); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+			return
+		}
+	}
 
 	cfg, err := profiles.Load(*configPath)
 	if err != nil {
@@ -210,26 +235,52 @@ func (a *app) applyCurrent(_ *gocui.Gui, _ *gocui.View) error {
 		return nil
 	}
 	id := a.ids[a.cursor]
-	p := a.cfg.Profiles[id]
-	active, err := profiles.ActiveOutputs(p.Monitors)
-	if err != nil {
+	if err := applyProfile(a.cfg, id); err != nil {
 		a.status = err.Error()
 		return nil
+	}
+	a.status = "OK — " + a.cfg.Profiles[id].Label
+	return nil
+}
+
+func runApply(configPath, profileID string) error {
+	cfg, err := profiles.Load(configPath)
+	if err != nil {
+		return err
+	}
+	return applyProfile(cfg, profileID)
+}
+
+func runList(configPath string) error {
+	cfg, err := profiles.Load(configPath)
+	if err != nil {
+		return err
+	}
+	for _, id := range cfg.OrderedIDs() {
+		fmt.Printf("%s\t%s\n", id, cfg.Profiles[id].Label)
+	}
+	return nil
+}
+
+func applyProfile(cfg *profiles.Config, profileID string) error {
+	p, ok := cfg.Profiles[profileID]
+	if !ok {
+		return fmt.Errorf("unknown profile %q (run: list)", profileID)
+	}
+	active, err := profiles.ActiveOutputs(p.Monitors)
+	if err != nil {
+		return err
 	}
 	current, err := hypr.MonitorNames()
 	if err != nil {
-		a.status = err.Error()
-		return nil
+		return err
 	}
 	rem := hypr.RemovingOutputs(current, active)
-	if err := hypr.MigrateOffMonitors(rem, a.cfg.SafeWorkspace); err != nil {
-		a.status = "migrate: " + err.Error()
-		return nil
+	if err := hypr.MigrateOffMonitors(rem, cfg.SafeWorkspace); err != nil {
+		return fmt.Errorf("migrate: %w", err)
 	}
 	if err := hypr.ApplyMonitors(p.Monitors); err != nil {
-		a.status = "apply: " + err.Error()
-		return nil
+		return fmt.Errorf("apply: %w", err)
 	}
-	a.status = "OK — " + p.Label
 	return nil
 }
