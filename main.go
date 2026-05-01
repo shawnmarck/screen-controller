@@ -102,7 +102,6 @@ func main() {
 	bind('k', gocui.ModNone, a.cursorUp)
 	bind(gocui.KeyArrowUp, gocui.ModNone, a.cursorUp)
 	bind(gocui.KeyEnter, gocui.ModNone, a.applyCurrent)
-	bind(10, gocui.ModNone, a.applyCurrent)
 	bind('r', gocui.ModNone, a.reloadConfig)
 
 	if err := g.MainLoop(); err != nil && !errors.Is(err, gocui.ErrQuit) {
