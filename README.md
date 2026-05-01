@@ -1,5 +1,7 @@
 # screen-controller
 
+**https://github.com/shawnmarck/screen-controller**
+
 Switch **Hyprland monitor layouts** from a small terminal UI (gocui) or from the CLI. When you disable an output, it **moves windows off that monitor** first (by workspace) so fewer clients are lost on hot-unplug.
 
 Designed for **Omarchy** (theme colors from `~/.config/omarchy/current/theme/kitty.conf`) and **Hyprland 0.54+** window rules.
