@@ -17,6 +17,15 @@ cd ~/projects/screen-controller
 go build -buildvcs=false -o screen-controller .
 ```
 
+## Config path (`-config`)
+
+If you omit **`-config`**, the default is the first path that exists:
+
+1. **`$XDG_CONFIG_HOME/screen-controller/profiles.yaml`** (often `~/.config/screen-controller/profiles.yaml`)
+2. **`~/projects/screen-controller/profiles.yaml`** (legacy layout from development)
+
+If neither exists yet, the default is **`$XDG_CONFIG_HOME/screen-controller/profiles.yaml`** so new installs have a stable location; otherwise **`./profiles.yaml`** if neither home nor XDG config dir could be resolved.
+
 ## Usage
 
 ### TUI
@@ -38,8 +47,8 @@ Keys: **j/k** or arrows, **Enter** apply, **r** reload YAML, **q** / **Esc** qui
 
 ## `profiles.yaml`
 
-- **`primary_monitor`**: output name used for documentation (migration uses `safe_workspace`).
-- **`safe_workspace`**: workspace id (integer) windows are moved to before an output is disabled — use one pinned to your primary monitor (e.g. `1` on DP-1).
+- **`primary_monitor`**: Hyprland output name (first field of a `monitor=` line). **Every profile must include at least one line whose output name matches** `primary_monitor` (active or `disable`), so typos are caught at load time.
+- **`safe_workspace`**: workspace id (integer) windows are moved to before an output is disabled — use one pinned to your primary monitor (e.g. `1` on DP-1). **`0` is allowed**; omitting the key is an error.
 - **`profile_order`**: list of profile keys for TUI ordering.
 - **`profiles.<id>.label`**: shown in the TUI.
 - **`profiles.<id>.monitors`**: Hyprland `monitor=` lines (`Output,mode,...` or `Output,disable`).
@@ -47,6 +56,7 @@ Keys: **j/k** or arrows, **Enter** apply, **r** reload YAML, **q** / **Esc** qui
 Example:
 
 ```yaml
+primary_monitor: DP-1
 safe_workspace: 1
 profiles:
   dual_sdr:
@@ -79,10 +89,11 @@ Reload: `hyprctl reload`.
 ## Reliability notes
 
 - Runs **`hyprctl`** only; does not reload your full Hyprland config.
-- **`apply`** and the **TUI** call **`hyprctl version`** (or use `HYPRLAND_INSTANCE_SIGNATURE`) so you get a clear error if you are not in a Hyprland session.
+- **`apply`** and the **TUI** always run **`hyprctl version`** (after checking `hyprctl` is on `PATH`) so a stale `HYPRLAND_INSTANCE_SIGNATURE` alone does not skip the check.
 - If **`hyprctl --batch`** fails, the tool retries **`hyprctl keyword monitor …`** per line. If every line works, the layout still applies (batch quirks, quoting, or Hyprland version edge cases).
 - Window moves that fail are collected; you see up to five failures (then a count). Migration does not stop mid-queue.
 - The TUI window is skipped during migration (`org.omarchy.screen-controller` / `screen-layout-tui`).
+- **Connected outputs not named** in the active profile’s `monitors` list get a **stderr warning** on apply: their windows are not migrated by this tool (only outputs being removed relative to the profile’s active set are migrated).
 - gocui tries **truecolor** output first, then **normal** and **256-color** modes if the terminal rejects the first.
 - Unknown CLI words (anything other than `list` / `apply`) print usage and exit `2` instead of opening the TUI by mistake.
 

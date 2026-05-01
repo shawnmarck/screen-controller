@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 )
@@ -29,13 +28,10 @@ type client struct {
 // ErrNotHyprland is returned when hyprctl is missing or not running under Hyprland.
 var ErrNotHyprland = errors.New("not a Hyprland session (hyprctl unavailable or failed)")
 
-// CheckSession verifies hyprctl works (HYPRLAND_INSTANCE_SIGNATURE set or hyprctl version succeeds).
+// CheckSession verifies hyprctl works by running hyprctl version (avoids trusting a stale HYPRLAND_INSTANCE_SIGNATURE alone).
 func CheckSession() error {
 	if _, err := exec.LookPath("hyprctl"); err != nil {
 		return fmt.Errorf("%w: hyprctl not in PATH", ErrNotHyprland)
-	}
-	if sig := os.Getenv("HYPRLAND_INSTANCE_SIGNATURE"); sig != "" {
-		return nil
 	}
 	out, err := exec.Command("hyprctl", "version").CombinedOutput()
 	if err != nil {

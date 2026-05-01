@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/awesome-gocui/gocui"
@@ -25,9 +26,7 @@ type app struct {
 }
 
 func main() {
-	home, _ := os.UserHomeDir()
-	defaultCfg := filepath.Join(home, "projects", "screen-controller", "profiles.yaml")
-	configPath := flag.String("config", defaultCfg, "path to profiles.yaml")
+	configPath := flag.String("config", defaultConfigPath(), "path to profiles.yaml")
 	kittyPath := flag.String("theme-kitty", theme.DefaultKittyConf(), "kitty.conf for palette (Omarchy theme)")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage:\n  %s [flags]                  # TUI\n  %s [flags] apply <profile_id> # one-shot layout\n  %s [flags] list               # profile ids\n", os.Args[0], os.Args[0], os.Args[0])
@@ -121,6 +120,32 @@ func main() {
 		fmt.Fprintf(os.Stderr, "MainLoop: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// defaultConfigPath prefers XDG config, then a legacy repo-style path if that file exists, else XDG path for new installs.
+func defaultConfigPath() string {
+	cfgDir, err := os.UserConfigDir()
+	if err == nil {
+		xdg := filepath.Join(cfgDir, "screen-controller", "profiles.yaml")
+		if _, e := os.Stat(xdg); e == nil {
+			return xdg
+		}
+	}
+	home, err := os.UserHomeDir()
+	if err == nil {
+		legacy := filepath.Join(home, "projects", "screen-controller", "profiles.yaml")
+		if _, e := os.Stat(legacy); e == nil {
+			return legacy
+		}
+		if cfgDir != "" {
+			return filepath.Join(cfgDir, "screen-controller", "profiles.yaml")
+		}
+		return legacy
+	}
+	if cfgDir != "" {
+		return filepath.Join(cfgDir, "screen-controller", "profiles.yaml")
+	}
+	return filepath.Join(".", "profiles.yaml")
 }
 
 func newGocui() (*gocui.Gui, error) {
@@ -307,6 +332,14 @@ func applyProfile(cfg *profiles.Config, profileID string) error {
 	current, err := hypr.MonitorNames()
 	if err != nil {
 		return err
+	}
+	ref, err := profiles.ReferencedOutputs(p.Monitors)
+	if err != nil {
+		return err
+	}
+	if extra := profiles.ConnectedOutputsNotInProfile(current, ref); len(extra) > 0 {
+		sort.Strings(extra)
+		fmt.Fprintf(os.Stderr, "screen-controller: warning: connected outputs not listed in this profile (their windows were not migrated): %s\n", strings.Join(extra, ", "))
 	}
 	rem := hypr.RemovingOutputs(current, active)
 	if err := hypr.MigrateOffMonitors(rem, cfg.SafeWorkspace); err != nil {

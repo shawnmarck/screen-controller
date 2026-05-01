@@ -9,6 +9,9 @@ import (
 	"github.com/awesome-gocui/gocui"
 )
 
+// maxKittyLine limits per-line read size when parsing kitty.conf (pathological files).
+const maxKittyLine = 256 * 1024
+
 type Colors struct {
 	FG     gocui.Attribute
 	BG     gocui.Attribute
@@ -27,6 +30,7 @@ func FromKittyPath(path string) Colors {
 
 	var fg, bg, c1, c8 string
 	sc := bufio.NewScanner(f)
+	sc.Buffer(make([]byte, 4096), maxKittyLine)
 	for sc.Scan() {
 		line := strings.TrimSpace(sc.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -49,6 +53,7 @@ func FromKittyPath(path string) Colors {
 			c8 = val
 		}
 	}
+	_ = sc.Err()
 	return Colors{
 		FG:     mustColor(fg, "#ddf7ff"),
 		BG:     mustColor(bg, "#0B0C16"),
