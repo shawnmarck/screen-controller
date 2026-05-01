@@ -9,9 +9,13 @@ import (
 	"strings"
 )
 
-type monitor struct {
-	ID   int    `json:"id"`
-	Name string `json:"name"`
+// Monitor is a subset of hyprctl monitors -j fields used for display and matching.
+type Monitor struct {
+	ID          int     `json:"id"`
+	Name        string  `json:"name"`
+	Width       int     `json:"width"`
+	Height      int     `json:"height"`
+	RefreshRate float64 `json:"refreshRate"`
 }
 
 type client struct {
@@ -44,13 +48,14 @@ func CheckSession() error {
 	return nil
 }
 
-func monitors() ([]monitor, error) {
+// Monitors returns parsed hyprctl monitors -j entries (connected outputs Hyprland reports).
+func Monitors() ([]Monitor, error) {
 	out, err := exec.Command("hyprctl", "monitors", "-j").Output()
 	if err != nil {
 		return nil, fmt.Errorf("hyprctl monitors: %w", err)
 	}
 	out = bytes.TrimSpace(out)
-	var ms []monitor
+	var ms []Monitor
 	if err := json.Unmarshal(out, &ms); err != nil {
 		return nil, fmt.Errorf("parse monitors: %w", err)
 	}
@@ -72,7 +77,7 @@ func clients() ([]client, error) {
 
 // MonitorNames returns currently connected output names (hyprctl order).
 func MonitorNames() ([]string, error) {
-	ms, err := monitors()
+	ms, err := Monitors()
 	if err != nil {
 		return nil, err
 	}
@@ -83,12 +88,32 @@ func MonitorNames() ([]string, error) {
 	return names, nil
 }
 
-func monitorIDToName(ms []monitor) map[int]string {
+func monitorIDToName(ms []Monitor) map[int]string {
 	m := make(map[int]string)
 	for _, mon := range ms {
 		m[mon.ID] = mon.Name
 	}
 	return m
+}
+
+// FormatMonitorsOneLine builds a compact summary for status lines (truncated to maxRunes runes if > 0).
+func FormatMonitorsOneLine(ms []Monitor, maxRunes int) string {
+	if len(ms) == 0 {
+		return "(no monitors)"
+	}
+	var parts []string
+	for _, m := range ms {
+		parts = append(parts, fmt.Sprintf("%s %dx%d@%.0fHz", m.Name, m.Width, m.Height, m.RefreshRate))
+	}
+	s := strings.Join(parts, "  ·  ")
+	if maxRunes > 0 && len([]rune(s)) > maxRunes {
+		r := []rune(s)
+		if maxRunes <= 1 {
+			return "…"
+		}
+		s = string(r[:maxRunes-1]) + "…"
+	}
+	return s
 }
 
 // RemovingOutputs lists names present now but not in targetActive.
@@ -115,7 +140,7 @@ func MigrateOffMonitors(removing []string, safeWorkspace int) error {
 	for _, n := range removing {
 		remove[n] = struct{}{}
 	}
-	ms, err := monitors()
+	ms, err := Monitors()
 	if err != nil {
 		return err
 	}

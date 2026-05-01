@@ -35,13 +35,15 @@ If neither exists yet, the default is **`$XDG_CONFIG_HOME/screen-controller/prof
 ./screen-controller -config /path/to/profiles.yaml
 ```
 
-Keys: **j/k** or arrows, **Enter** apply, **r** reload YAML, **q** / **Esc** quit.
+Keys: **j/k** or arrows, **Home/End**, **1–9** jump, **Enter** apply, **r** reload YAML, **?** help, **q** / **Esc** quit. **●** marks the profile whose enabled outputs match Hyprland; a right pane (wide terminals) shows `monitor=` lines for the selection.
 
 ### CLI
 
 ```bash
 ./screen-controller list
 ./screen-controller apply dual_sdr
+./screen-controller describe              # Hyprland vs profiles (matched id)
+./screen-controller describe dual_sdr    # plus that profile’s monitor lines
 ./screen-controller -config ./profiles.yaml apply single_left_sdr
 ```
 
@@ -95,7 +97,7 @@ Reload: `hyprctl reload`.
 - The TUI window is skipped during migration (`org.omarchy.screen-controller` / `screen-layout-tui`).
 - **Connected outputs not named** in the active profile’s `monitors` list get a **stderr warning** on apply: their windows are not migrated by this tool (only outputs being removed relative to the profile’s active set are migrated).
 - gocui tries **truecolor** output first, then **normal** and **256-color** modes if the terminal rejects the first.
-- Unknown CLI words (anything other than `list` / `apply`) print usage and exit `2` instead of opening the TUI by mistake.
+- Unknown CLI words (anything other than `list` / `apply` / `describe`) print usage and exit `2` instead of opening the TUI by mistake.
 
 ## License
 
