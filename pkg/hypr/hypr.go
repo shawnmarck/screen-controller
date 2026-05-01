@@ -3,7 +3,9 @@ package hypr
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -24,11 +26,34 @@ type client struct {
 	Title        string `json:"title"`
 }
 
+// ErrNotHyprland is returned when hyprctl is missing or not running under Hyprland.
+var ErrNotHyprland = errors.New("not a Hyprland session (hyprctl unavailable or failed)")
+
+// CheckSession verifies hyprctl works (HYPRLAND_INSTANCE_SIGNATURE set or hyprctl version succeeds).
+func CheckSession() error {
+	if _, err := exec.LookPath("hyprctl"); err != nil {
+		return fmt.Errorf("%w: hyprctl not in PATH", ErrNotHyprland)
+	}
+	if sig := os.Getenv("HYPRLAND_INSTANCE_SIGNATURE"); sig != "" {
+		return nil
+	}
+	out, err := exec.Command("hyprctl", "version").CombinedOutput()
+	if err != nil {
+		s := strings.TrimSpace(string(out))
+		if s != "" {
+			return fmt.Errorf("%w: %s", ErrNotHyprland, s)
+		}
+		return fmt.Errorf("%w: %w", ErrNotHyprland, err)
+	}
+	return nil
+}
+
 func monitors() ([]monitor, error) {
 	out, err := exec.Command("hyprctl", "monitors", "-j").Output()
 	if err != nil {
 		return nil, fmt.Errorf("hyprctl monitors: %w", err)
 	}
+	out = bytes.TrimSpace(out)
 	var ms []monitor
 	if err := json.Unmarshal(out, &ms); err != nil {
 		return nil, fmt.Errorf("parse monitors: %w", err)
@@ -41,6 +66,7 @@ func clients() ([]client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("hyprctl clients: %w", err)
 	}
+	out = bytes.TrimSpace(out)
 	var cs []client
 	if err := json.Unmarshal(out, &cs); err != nil {
 		return nil, fmt.Errorf("parse clients: %w", err)
@@ -102,6 +128,7 @@ func MigrateOffMonitors(removing []string, safeWorkspace int) error {
 	if err != nil {
 		return err
 	}
+	var moveErrs []string
 	for _, c := range cs {
 		if !c.Mapped || c.Hidden {
 			continue
@@ -125,13 +152,19 @@ func MigrateOffMonitors(removing []string, safeWorkspace int) error {
 		}
 		arg := fmt.Sprintf("%d,address:%s", safeWorkspace, addr)
 		if err := dispatch("movetoworkspacesilent", arg); err != nil {
-			return fmt.Errorf("move %s (%s): %w", addr, c.Class, err)
+			moveErrs = append(moveErrs, fmt.Sprintf("%s (%s): %v", addr, c.Class, err))
 		}
+	}
+	if len(moveErrs) > 0 {
+		const maxShow = 5
+		show := moveErrs
+		if len(show) > maxShow {
+			show = append(show[:maxShow], fmt.Sprintf("… and %d more", len(moveErrs)-maxShow))
+		}
+		return fmt.Errorf("movetoworkspacesilent: %s", strings.Join(show, "; "))
 	}
 	return nil
 }
-
-
 
 func shouldSkipMigrate(c client) bool {
 	switch {
@@ -157,29 +190,52 @@ func dispatch(cmd string, args ...string) error {
 	return nil
 }
 
-// ApplyMonitors runs hyprctl keyword monitor for each line in order.
+// ApplyMonitors runs hyprctl keyword monitor for each line. It tries one --batch call,
+// then falls back to one hyprctl invocation per line so a single bad token is easy to spot.
 func ApplyMonitors(lines []string) error {
-	var parts []string
+	var nonEmpty []string
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
-		parts = append(parts, "keyword monitor "+line)
+		nonEmpty = append(nonEmpty, line)
 	}
-	if len(parts) == 0 {
+	if len(nonEmpty) == 0 {
 		return fmt.Errorf("no monitor lines to apply")
+	}
+	var parts []string
+	for _, line := range nonEmpty {
+		parts = append(parts, "keyword monitor "+line)
 	}
 	batch := strings.Join(parts, "; ")
 	cmd := exec.Command("hyprctl", "--batch", batch)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		msg := strings.TrimSpace(stderr.String())
-		if msg != "" {
-			return fmt.Errorf("hyprctl --batch: %w: %s", err, msg)
-		}
-		return fmt.Errorf("hyprctl --batch: %w", err)
+	errBatch := cmd.Run()
+	if errBatch == nil {
+		return nil
 	}
-	return nil
+	batchErr := fmt.Errorf("hyprctl --batch: %w: %s", errBatch, strings.TrimSpace(stderr.String()))
+
+	var lineErrs []string
+	allOK := true
+	for _, line := range nonEmpty {
+		c2 := exec.Command("hyprctl", "keyword", "monitor", line)
+		var eout bytes.Buffer
+		c2.Stderr = &eout
+		if err := c2.Run(); err != nil {
+			allOK = false
+			msg := strings.TrimSpace(eout.String())
+			if msg != "" {
+				lineErrs = append(lineErrs, fmt.Sprintf("%q: %s", line, msg))
+			} else {
+				lineErrs = append(lineErrs, fmt.Sprintf("%q: %v", line, err))
+			}
+		}
+	}
+	if allOK {
+		return nil
+	}
+	return fmt.Errorf("%v; per-line: %s", batchErr, strings.Join(lineErrs, "; "))
 }

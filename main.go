@@ -42,6 +42,10 @@ func main() {
 				flag.Usage()
 				os.Exit(2)
 			}
+			if err := hypr.CheckSession(); err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
 			if err := runApply(*configPath, args[1]); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
@@ -53,7 +57,16 @@ func main() {
 				os.Exit(1)
 			}
 			return
+		default:
+			fmt.Fprintf(os.Stderr, "unknown command %q\n\n", args[0])
+			flag.Usage()
+			os.Exit(2)
 		}
+	}
+
+	if err := hypr.CheckSession(); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
 	}
 
 	cfg, err := profiles.Load(*configPath)
@@ -111,7 +124,11 @@ func main() {
 }
 
 func newGocui() (*gocui.Gui, error) {
-	modes := []gocui.OutputMode{gocui.OutputTrue, gocui.OutputNormal}
+	modes := []gocui.OutputMode{
+		gocui.OutputTrue,
+		gocui.OutputNormal,
+		gocui.Output256,
+	}
 	var lastErr error
 	for _, mode := range modes {
 		g, err := gocui.NewGui(mode, true)
@@ -237,6 +254,10 @@ func (a *app) reloadConfig(_ *gocui.Gui, _ *gocui.View) error {
 	a.ids = cfg.OrderedIDs()
 	if a.cursor >= len(a.ids) {
 		a.cursor = max(0, len(a.ids)-1)
+	}
+	if len(a.ids) == 0 {
+		a.status = "Reloaded — no profiles left in YAML"
+		return nil
 	}
 	a.status = "Reloaded profiles.yaml"
 	return nil
