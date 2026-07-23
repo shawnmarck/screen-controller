@@ -47,9 +47,10 @@ Keys: **j/k** or arrows, **Home/End**, **1–9** jump, **Enter** apply, **r** re
 ```bash
 ./screen-controller list
 ./screen-controller apply dual_sdr
+./screen-controller apply single_left_sdr
 ./screen-controller describe              # Hyprland vs profiles (matched id)
 ./screen-controller describe dual_sdr    # plus that profile’s monitor lines
-./screen-controller -config ./profiles.yaml apply single_left_sdr
+./screen-controller -config ./profiles.yaml apply single_left_hdr
 ```
 
 ## `profiles.yaml`
