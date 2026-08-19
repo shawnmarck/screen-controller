@@ -47,11 +47,26 @@ Keys: **j/k** or arrows, **Home/End**, **1–9** jump, **Enter** apply, **r** re
 ```bash
 ./screen-controller list
 ./screen-controller apply dual_sdr
-./screen-controller apply single_left_sdr
 ./screen-controller describe              # Hyprland vs profiles (matched id)
 ./screen-controller describe dual_sdr    # plus that profile’s monitor lines
+./screen-controller --json list           # same snapshot the Omarchy bar uses
+./screen-controller --label "Desk" save desk   # capture current Hyprland layout
+./screen-controller relabel desk "Desk dual"
+./screen-controller rename desk desk_dual
+./screen-controller delete desk_dual
 ./screen-controller -config ./profiles.yaml apply single_left_hdr
 ```
+
+`save` writes `monitor=` lines from live `hyprctl monitors`. Outputs named in other profiles but not currently connected are stored as `Name,disable`. `--json` on apply/save/delete/rename/relabel reprints the full profile list after the change.
+
+### Omarchy bar
+
+The TUI is unchanged (including Super+Shift+F4). The bar widget lives in `omarchy/shawnmarck.screen-layouts/`:
+
+- left-click: apply / save current / edit label / delete
+- right-click: open this TUI
+
+On this machine the plugin is installed under `~/.config/omarchy/plugins/` and parked next to `omarchy.monitor` in `shell.json`. Point `binary` at a built `./screen-controller`.
 
 ## `profiles.yaml`
 
@@ -103,7 +118,7 @@ Reload: `hyprctl reload`.
 - The TUI window is skipped during migration (`org.omarchy.screen-controller` / `screen-layout-tui`).
 - **Connected outputs not named** in the active profile’s `monitors` list get a **stderr warning** on apply: their windows are not migrated by this tool (only outputs being removed relative to the profile’s active set are migrated).
 - gocui tries **truecolor** output first, then **normal** and **256-color** modes if the terminal rejects the first.
-- Unknown CLI words (anything other than `list` / `apply` / `describe`) print usage and exit `2` instead of opening the TUI by mistake.
+- Unknown CLI words (anything other than `list` / `apply` / `describe` / `save` / `delete` / `rename` / `relabel`) print usage and exit `2` instead of opening the TUI by mistake.
 
 ## License
 

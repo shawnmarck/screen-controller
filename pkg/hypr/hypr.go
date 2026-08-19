@@ -9,13 +9,22 @@ import (
 	"strings"
 )
 
-// Monitor is a subset of hyprctl monitors -j fields used for display and matching.
+// Monitor is a subset of hyprctl monitors -j fields used for display, matching, and save.
 type Monitor struct {
-	ID          int     `json:"id"`
-	Name        string  `json:"name"`
-	Width       int     `json:"width"`
-	Height      int     `json:"height"`
-	RefreshRate float64 `json:"refreshRate"`
+	ID                    int      `json:"id"`
+	Name                  string   `json:"name"`
+	Width                 int      `json:"width"`
+	Height                int      `json:"height"`
+	RefreshRate           float64  `json:"refreshRate"`
+	X                     int      `json:"x"`
+	Y                     int      `json:"y"`
+	Scale                 float64  `json:"scale"`
+	Transform             int      `json:"transform"`
+	Disabled              bool     `json:"disabled"`
+	VRR                   bool     `json:"vrr"`
+	CurrentFormat         string   `json:"currentFormat"`
+	ColorManagementPreset string   `json:"colorManagementPreset"`
+	AvailableModes        []string `json:"availableModes"`
 }
 
 type client struct {

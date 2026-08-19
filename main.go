@@ -40,52 +40,29 @@ type app struct {
 func main() {
 	configPath := flag.String("config", defaultConfigPath(), "path to profiles.yaml")
 	kittyPath := flag.String("theme-kitty", theme.DefaultKittyConf(), "kitty.conf for palette (Omarchy theme)")
+	jsonOut := flag.Bool("json", false, "print machine-readable JSON (list/describe/apply/save/delete/rename/relabel)")
+	labelFlag := flag.String("label", "", "display name for save")
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage:\n  %s [flags]                  # TUI\n  %s [flags] apply <profile_id> # one-shot layout\n  %s [flags] list               # profile ids\n  %s [flags] describe [profile_id] # Hyprland vs profiles (optional id)\n", os.Args[0], os.Args[0], os.Args[0], os.Args[0])
+		fmt.Fprintf(os.Stderr, `Usage:
+  %s [flags]                         # TUI
+  %s [flags] list
+  %s [flags] describe [profile_id]
+  %s [flags] apply <profile_id>
+  %s [flags] save <profile_id> [--label NAME]
+  %s [flags] delete <profile_id>
+  %s [flags] rename <old_id> <new_id>
+  %s [flags] relabel <profile_id> <label>
+
+Flags:
+`, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 		flag.PrintDefaults()
 	}
 	flag.Parse()
 	args := flag.Args()
 	if len(args) >= 1 {
-		switch args[0] {
-		case "apply":
-			if len(args) < 2 {
-				flag.Usage()
-				os.Exit(2)
-			}
-			if err := hypr.CheckSession(); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-			if err := runApply(*configPath, args[1]); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-			return
-		case "list":
-			if err := runList(*configPath); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-			return
-		case "describe":
-			if err := hypr.CheckSession(); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-			profileArg := ""
-			if len(args) >= 2 {
-				profileArg = args[1]
-			}
-			if err := runDescribe(*configPath, profileArg); err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-			return
-		default:
-			fmt.Fprintf(os.Stderr, "unknown command %q (expected list, apply, or describe)\n\n", args[0])
-			flag.Usage()
-			os.Exit(2)
+		code := runCLI(*configPath, *jsonOut, *labelFlag, args)
+		if code >= 0 {
+			os.Exit(code)
 		}
 	}
 

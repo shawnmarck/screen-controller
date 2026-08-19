@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "id": "shawnmarck.screen-layouts",
+  "name": "Screen layouts",
+  "version": "1.0.0",
+  "author": "Shawn Marck",
+  "license": "MIT",
+  "description": "Hyprland monitor layout profiles from screen-controller: select, save current, rename, delete.",
+  "homepage": "https://github.com/shawnmarck/screen-controller",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Screen layouts",
+    "description": "Apply and manage screen-controller profiles next to Display",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "binary": "screen-controller",
+      "tuiCommand": "omarchy-launch-tui screen-controller",
+      "config": "",
+      "refreshMs": 4000
+    },
+    "schema": [
+      {
+        "key": "binary",
+        "type": "string",
+        "label": "screen-controller binary",
+        "defaultValue": "screen-controller",
+        "description": "Absolute path or command name on PATH."
+      },
+      {
+        "key": "tuiCommand",
+        "type": "string",
+        "label": "TUI launch command",
+        "defaultValue": "omarchy-launch-tui screen-controller",
+        "description": "Right-click / Open TUI. Super+Shift+F4 can keep using the same command."
+      },
+      {
+        "key": "config",
+        "type": "string",
+        "label": "profiles.yaml path",
+        "defaultValue": "",
+        "description": "Empty uses screen-controller's default config search."
+      },
+      {
+        "key": "refreshMs",
+        "type": "integer",
+        "label": "Refresh interval",
+        "min": 1000,
+        "max": 30000,
+        "step": 500,
+        "defaultValue": 4000,
+        "description": "How often the icon re-reads the matched profile."
+      }
+    ]
+  }
+}
